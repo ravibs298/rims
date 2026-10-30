@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: rims-frontend, namespace: rims, labels: { app: rims-frontend } }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector: { matchLabels: { app: rims-frontend } }
+  template:
+    metadata: { labels: { app: rims-frontend } }
+    spec:
+      containers:
+        - name: frontend
+          image: ${ECR_REGISTRY}/rims-frontend:${IMAGE_TAG}
+          ports: [{ containerPort: 8080, name: http }]
+          env: [{ name: BACKEND_URL, value: "http://rims-backend:4000" }]
+          readinessProbe: { httpGet: { path: /health, port: http }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 10, periodSeconds: 20 }
+          resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { cpu: 250m, memory: 128Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: rims-frontend, namespace: rims }
+spec:
+  selector: { app: rims-frontend }
+  ports: [{ port: 80, targetPort: http, name: http }]

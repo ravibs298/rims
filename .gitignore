@@ -1,0 +1,6 @@
+node_modules
+dist
+.env
+coverage
+frontend/cypress/videos
+frontend/cypress/screenshots

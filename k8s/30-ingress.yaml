@@ -1,0 +1,22 @@
+# Requires the AWS Load Balancer Controller. Replace the ACM certificate ARN and host.
+# The frontend's nginx proxies /api to rims-backend, so one host/ingress is enough.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rims
+  namespace: rims
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT_ID:certificate/REPLACE_ME
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  rules:
+    - host: rims.example.com
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: rims-frontend, port: { number: 80 } } } }

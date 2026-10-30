@@ -1,0 +1,25 @@
+{
+  "name": "rims",
+  "version": "1.0.0",
+  "private": true,
+  "description": "XYZ Retail Corporation - Retail Inventory Management System (PRG_RIMS_001)",
+  "workspaces": ["backend", "frontend"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "lint": "eslint backend/src backend/tests frontend/src",
+    "typecheck": "npm run typecheck -w backend && npm run typecheck -w frontend",
+    "migrate": "npm run migrate -w backend",
+    "seed": "npm run seed -w backend",
+    "test:unit": "npm run test:unit -w backend && npm run test -w frontend",
+    "test:integration": "npm run test:integration -w backend",
+    "test:e2e": "npm run test:e2e -w frontend"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "eslint": "^9.14.0",
+    "typescript-eslint": "^8.13.0"
+  }
+}

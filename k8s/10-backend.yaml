@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: rims-backend, namespace: rims, labels: { app: rims-backend } }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy: { type: RollingUpdate, rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } }
+  selector: { matchLabels: { app: rims-backend } }
+  template:
+    metadata: { labels: { app: rims-backend } }
+    spec:
+      serviceAccountName: rims-backend
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: backend
+          image: ${ECR_REGISTRY}/rims-backend:${IMAGE_TAG}
+          ports: [{ containerPort: 4000, name: http }]
+          envFrom:
+            - configMapRef: { name: rims-config }
+            - secretRef: { name: rims-secrets }
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 10, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 10, periodSeconds: 20 }
+          startupProbe: { httpGet: { path: /health, port: http }, periodSeconds: 3, failureThreshold: 20 }
+          resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: "1", memory: 512Mi } }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: rims-backend, namespace: rims }
+spec:
+  selector: { app: rims-backend }
+  ports: [{ port: 4000, targetPort: http, name: http }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: rims-backend, namespace: rims }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: rims-backend }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics: [{ type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } } }]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: rims-backend, namespace: rims }
+spec:
+  minAvailable: 1
+  selector: { matchLabels: { app: rims-backend } }

@@ -1,0 +1,44 @@
+services:
+  mysql:
+    image: mysql:8.0
+    command: --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: root_dev_password
+      MYSQL_DATABASE: rims
+      MYSQL_USER: rims
+      MYSQL_PASSWORD: rims_dev_password
+    ports: ["3306:3306"]
+    volumes: ["mysql_data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-urims", "-prims_dev_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    depends_on:
+      mysql: { condition: service_healthy }
+    restart: on-failure
+    environment:
+      NODE_ENV: development
+      PORT: "4000"
+      DB_HOST: mysql
+      DB_USER: rims
+      DB_PASSWORD: rims_dev_password
+      DB_NAME: rims
+      JWT_SECRET: local-dev-only-secret-change-me-0123456789abcdef
+      CORS_ORIGINS: http://localhost:8080
+      SEED_PASSWORD: ChangeMe-2026-dev
+    ports: ["4000:4000"]
+    command: ["sh", "-c", "node backend/dist/migrate.js && node backend/dist/server.js"]
+
+  frontend:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    depends_on: [backend]
+    environment:
+      BACKEND_URL: http://backend:4000
+    ports: ["8080:8080"]
+
+volumes:
+  mysql_data:
